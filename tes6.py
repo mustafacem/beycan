@@ -10,6 +10,39 @@ import openai
 import streamlit as st
 from dotenv import load_dotenv
 from pydub import AudioSegment
+import shutil
+import subprocess
+import sys
+
+def ensure_ffmpeg_installed():
+    # 1. Check if "ffmpeg" is already available
+    if shutil.which("ffmpeg") is not None:
+        # ffmpeg is on PATH, nothing to do
+        return
+
+    # 2. ffmpeg not found—attempt to install via apt
+    print("ffmpeg not detected. Installing via apt...")
+
+    try:
+        # Update package lists
+        subprocess.check_call(["sudo", "apt", "update"], stdout=sys.stdout, stderr=sys.stderr)
+
+        # Install ffmpeg without prompting (the "-y" flag auto-answers "yes")
+        subprocess.check_call(
+            ["sudo", "apt", "install", "-y", "ffmpeg"],
+            stdout=sys.stdout,
+            stderr=sys.stderr
+        )
+
+        # Verify that ffmpeg is now on PATH
+        if shutil.which("ffmpeg") is None:
+            raise RuntimeError("Installation completed, but ffmpeg still not found on PATH.")
+        else:
+            print("ffmpeg successfully installed.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error while installing ffmpeg: {e}")
+        sys.exit(1)
+
 
 # Load environment variables
 load_dotenv()
@@ -290,6 +323,7 @@ def combine_processed_tracks(processed_files, output_filename="final_mix.wav"):
 # -----------------------------------------------------------------------------
 
 def main():
+    ensure_ffmpeg_installed()
     openai.api_key = os.getenv("OPENAI_API_KEY", "")
     
     # Initialize state and chat UI
